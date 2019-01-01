@@ -7,7 +7,7 @@ use DateTime;
 use List::Util qw(sum);
 
 my $definitions;
-my $initial;
+#my $initial;
 my $input;
 my $cash_flow;
 
@@ -17,47 +17,38 @@ $definitions = main::get_definitions();
 
 my @order;
 
+#-------------------------------------------------------------------------------
+# Read input csv file and convert to $input hash
+#-------------------------------------------------------------------------------
 while (<>) {
  
- chomp;
- my $line = $_;
- 
- next if( $line =~ /^\s*$|\s*#/);
- next if( $. == 1); # why?
- 
- my @line = split(/,/, $line );
-
- if( scalar @line ne 5 ) {
+  chomp;
+  my $line = $_;
+  
+  next if( $line =~ /^\s*$|\s*#/);
+  next if( $. == 1); # why?
+  
+  my @line = split(/,/, $line );
+  
+  if( scalar @line ne 5 ) {
    die( "ERROR: on line $. [$line] does not have 5 columns, as it should");
- }
- 
- my ($type, $amount, $cycle_start, $frequency, $comment ) = split(/,/, $line );
-
- $input->{$type}->{amount}      = $amount;
- $input->{$type}->{cycle_start} = $cycle_start;
- $input->{$type}->{frequency}   = $frequency;
- $input->{$type}->{comment}     = $comment;
- 
- if( ! exists $definitions->{$frequency} ) {
+  }
+  
+  my ($type, $amount, $cycle_start, $frequency, $comment ) = split(/,/, $line );
+  
+  $input->{$type}->{amount}      = $amount;
+  $input->{$type}->{cycle_start} = $cycle_start;
+  $input->{$type}->{frequency}   = $frequency;
+  $input->{$type}->{comment}     = $comment;
+  
+  if( ! exists $definitions->{$frequency} ) {
    die("ERROR: line $. [$line] has a frequency of [$frequency] which is not defined");
- }
- $input->{$type}->{cycles}      = $definitions->{$frequency}->{cycles_per_year};
- 
- push( @order, $type );
+  }
+  $input->{$type}->{cycles} = $definitions->{$frequency}->{cycles_per_year};
+  
+  push( @order, $type ); # order of columns in input file
  
 }
-
-my @inputs = keys %{$input};
-# 
-# if( scalar @inputs ne scalar @order ) {
-  # die("ERROR: number of inputs does not match the order of columns!");
-# }
-# 
-# foreach my $column_name ( @order ) {
-  # if( ! exists $input->{$column_name} ) {
-    # die("ERROR: Column name $column_name is not defined!");
-  # }
-# }
 
 foreach my $type ( sort keys %{$input} ) {
   
