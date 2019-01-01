@@ -5,9 +5,9 @@ use warnings;
 use Data::Dumper;
 use DateTime;
 use List::Util qw(sum);
+use Scalar::Util qw(looks_like_number);
 
 my $definitions;
-#my $initial;
 my $input;
 my $cash_flow;
 
@@ -22,31 +22,55 @@ my @order;
 #-------------------------------------------------------------------------------
 while (<>) {
  
+  s/\R/\n/g;
   chomp;
   my $line = $_;
   
   next if( $line =~ /^\s*$|\s*#/);
   next if( $. == 1); # why?
   
+  $line =~ s/,\s*$/, /g; # This is a hack!
+  
   my @line = split(/,/, $line );
   
   if( scalar @line ne 5 ) {
-   die( "ERROR: on line $. [$line] does not have 5 columns, as it should");
+    die( "\nERROR: on line $. [$line] does not have 5 columns, as it should\n");
   }
   
   my ($type, $amount, $cycle_start, $frequency, $comment ) = split(/,/, $line );
   
+  $cycle_start =~ s/\s//g;
+  
+  
+  if( exists $input ->{$type} ) {
+    die("\nERROR: $type already exists in the input file\n");    
+  }
+  
+  if (! looks_like_number($amount)) {
+    die("\nERROR: on line $. [$line] has a none numeric value for the amount!\n");
+  }
+  
+  if( $cycle_start =~ /^(\d{4})-(\d{2})-(\d{2})$/ ) {
+    $input->{$type}->{cycle_start_year}  = $1;
+    $input->{$type}->{cycle_start_month} = $2;
+    $input->{$type}->{cycle_start_day}   = $3;
+  } else {
+    die("\nERROR: on line $. [$line] has an improperly formatted date! The only permitted format is %Y-%m-%d\n");    
+  }
+  
+  if( ! exists $definitions->{$frequency} ) {
+    die("\nERROR: line $. [$line] has a frequency of [$frequency] which is not defined\n");
+  }
+
   $input->{$type}->{amount}      = $amount;
   $input->{$type}->{cycle_start} = $cycle_start;
   $input->{$type}->{frequency}   = $frequency;
   $input->{$type}->{comment}     = $comment;
+  $input->{$type}->{linenumber}  = $.;
+  $input->{$type}->{line}        = $line;
+  $input->{$type}->{cycles}      = $definitions->{$frequency}->{cycles_per_year};
   
-  if( ! exists $definitions->{$frequency} ) {
-   die("ERROR: line $. [$line] has a frequency of [$frequency] which is not defined");
-  }
-  $input->{$type}->{cycles} = $definitions->{$frequency}->{cycles_per_year};
-  
-  push( @order, $type ); # order of columns in input file
+  push( @order, $type ); # order of rows in input file, which will become columns in the output
  
 }
 
