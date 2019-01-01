@@ -11,7 +11,7 @@ my $initial;
 my $input;
 my $cash_flow;
 
-my $DATE_EXEC="gdate";
+my $DATE_EXEC="gdate"; # bad, need to avoid this
 
 $definitions = main::get_definitions();
 
@@ -22,9 +22,8 @@ while (<>) {
  chomp;
  my $line = $_;
  
- next if( $line =~ /^\s*$/);
- next if( $. == 1);
- next if( /^\s*#/ );
+ next if( $line =~ /^\s*$|\s*#/);
+ next if( $. == 1); # why?
  
  my @line = split(/,/, $line );
 
