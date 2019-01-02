@@ -10,12 +10,9 @@ use Scalar::Util qw(looks_like_number);
 my $definitions;
 my $input;
 my $cash_flow;
-
-my $DATE_EXEC="gdate"; # bad, need to avoid this
+my @order;
 
 $definitions = main::get_definitions();
-
-my @order;
 
 #-------------------------------------------------------------------------------
 # Read input csv file and convert to $input hash
@@ -39,8 +36,7 @@ while (<>) {
   
   my ($type, $amount, $cycle_start, $frequency, $comment ) = split(/,/, $line );
   
-  $cycle_start =~ s/\s//g;
-  
+  $cycle_start =~ s/\s//g; # remove blanks around date
   
   if( exists $input ->{$type} ) {
     die("\nERROR: $type already exists in the input file\n");    
@@ -77,17 +73,29 @@ while (<>) {
 foreach my $type ( sort keys %{$input} ) {
   
   my $cycle_start = $input->{$type}->{cycle_start};
+  my $year        = $input->{$type}->{cycle_start_year};
+  my $month       = $input->{$type}->{cycle_start_month};
+  my $day         = $input->{$type}->{cycle_start_day};
   my $amount      = $input->{$type}->{amount};
   my $frequency   = $definitions->{$input->{$type}->{frequency}}->{string};
   my $cycles      = $input->{$type}->{cycles};
   
   my $d = $cycle_start;
+  
   $cash_flow->{$d}->{$type}=$amount;
    
   for (my $n=0; $n <= $cycles-1; $n++) {
-   my $dd = "-d $d $frequency";
-   $d=`$DATE_EXEC '+%Y-%m-%d' "$dd"`;
-   $d =~ s/\n$//g;
+
+   my $dt = DateTime->new( year => $year, month => $month, day => $day );
+   $dt->add( eval $frequency );
+
+   # New year, month and day, after adding $frequency
+   $year  = $dt->year;
+   $month = $dt->month;
+   $day   = $dt->day;
+
+   $d = sprintf("%4d-%02d-%02d", $year, $month, $day );
+   
    $cash_flow->{$d}->{$type}=$amount;
   }
   
@@ -95,6 +103,7 @@ foreach my $type ( sort keys %{$input} ) {
 
 my $cf;
 
+# Need to improve the below
 foreach my $date ( sort keys %{$cash_flow} ) {
   
   my @amounts;
@@ -129,25 +138,27 @@ foreach my $date ( sort keys %{$cf} ) {
 
 sub get_definitions {
   
-  $definitions->{yearly}->{string}            = '1 year';
+  # String is to be used with DateTime module
+  
+  $definitions->{yearly}->{string}            = 'years => 1';
   $definitions->{yearly}->{cycles_per_year}   = 1;
 
-  $definitions->{monthly}->{string}           = '1 month';
+  $definitions->{monthly}->{string}           = 'months => 1';
   $definitions->{monthly}->{cycles_per_year}  = 12;
   
-  $definitions->{biweekly}->{string}          = '2 weeks';
+  $definitions->{biweekly}->{string}          = 'weeks => 2';
   $definitions->{biweekly}->{cycles_per_year} = 26;
   
-  $definitions->{weekly}->{string}            = '1 week';
+  $definitions->{weekly}->{string}            = 'weeks => 1';
   $definitions->{weekly}->{cycles_per_year}   = 52;
   
-  $definitions->{daily}->{string}             = '1 day';
-  $definitions->{daily}->{cycles_per_year}    = 365;
+  $definitions->{daily}->{string}             = 'days => 1';
+  $definitions->{daily}->{cycles_per_year}    = 365; # of course may be 366
   
-  $definitions->{quarterly}->{string}          = '3 months';
+  $definitions->{quarterly}->{string}          = 'months => 3';
   $definitions->{quarterly}->{cycles_per_year} = 4;  
 
-  $definitions->{once}->{string}               = '0 days';
+  $definitions->{once}->{string}               = 'days => 0';
   $definitions->{once}->{cycles_per_year}      = 0;  
   
   return $definitions;
