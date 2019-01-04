@@ -143,6 +143,9 @@ sub get_definitions {
   $definitions->{yearly}->{string}            = 'years => 1';
   $definitions->{yearly}->{cycles_per_year}   = 1;
 
+  $definitions->{biennial}->{string}          = 'years => 2';
+  $definitions->{biennial}->{cycles_per_year} = 0.5;
+  
   $definitions->{monthly}->{string}           = 'months => 1';
   $definitions->{monthly}->{cycles_per_year}  = 12;
   
