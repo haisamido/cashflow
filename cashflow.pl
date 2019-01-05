@@ -14,6 +14,8 @@ my @order;
 
 $definitions = main::get_definitions();
 
+my $run_timestamp = 2; # 2 years. this is hardcoded, not good
+
 #-------------------------------------------------------------------------------
 # Read input csv file and convert to $input hash
 #-------------------------------------------------------------------------------
@@ -64,7 +66,7 @@ while (<>) {
   $input->{$type}->{comment}     = $comment;
   $input->{$type}->{linenumber}  = $.;
   $input->{$type}->{line}        = $line;
-  $input->{$type}->{cycles}      = $definitions->{$frequency}->{cycles_per_year};
+  $input->{$type}->{cycles}      = $definitions->{$frequency}->{cycles_per_year}*$run_timestamp;
   
   push( @order, $type ); # order of rows in input file, which will become columns in the output
  
