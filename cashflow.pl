@@ -126,17 +126,42 @@ foreach my $date ( sort keys %{$cash_flow} ) {
 
 }
 
+#-------------------------------------------------------------------------------
+# Source: https://metacpan.org/source/SBURKE/Number-Latin-1.01/Latin.pm
+#-------------------------------------------------------------------------------
+sub int2latin ($) {
+  # Source: https://metacpan.org/source/SBURKE/Number-Latin-1.01/Latin.pm
+  return undef unless defined $_[0];
+  return '0' if $_[0] == 0;
+  return '-' . _i2l( abs int $_[0] ) if $_[0] <= -1;
+  return       _i2l(     int $_[0] );
+}
+ 
+{
+  my @alpha = ('a' .. 'z'); 
+  # Source: https://metacpan.org/source/SBURKE/Number-Latin-1.01/Latin.pm
+  sub _i2l { # the real work
+    my $int = shift(@_) || return "";
+    _i2l(int (($int - 1) / 26)) . $alpha[$int % 26 - 1];  # yes, recursive
+  }
+}
+#-------------------------------------------------------------------------------
+
+# main:
 print "date,CASH FLOW,SUM ON DATE," . join( ",", @order) . "\n";
 
 foreach my $date ( sort keys %{$cf} ) {
   
   my @amounts = @{$cf->{$date}};
+  my $columns = scalar @amounts;
   
-#  print sum(0, @amounts);
-#  print "\n";
   print "$date,,," . join( ",", @amounts) . "\n";
+#  print join(' ', map int2latin($_), $columns+3), "\n";
   
 }
+
+
+#exit;
 
 sub get_definitions {
   
@@ -169,3 +194,4 @@ sub get_definitions {
   return $definitions;
 
 }
+
