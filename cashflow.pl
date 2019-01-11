@@ -10,15 +10,40 @@ use Scalar::Util qw(looks_like_number);
 my $definitions;
 my $input;
 my $cash_flow;
-my @order;
+my @types;
 
 $definitions = main::get_definitions();
 
 my $run_timestamp = 2; # 2 years. this is hardcoded, not good
 
 #-------------------------------------------------------------------------------
+# Source: https://metacpan.org/source/SBURKE/Number-Latin-1.01/Latin.pm
+#-------------------------------------------------------------------------------
+sub int2latin ($) {
+  # Source: https://metacpan.org/source/SBURKE/Number-Latin-1.01/Latin.pm
+  return undef unless defined $_[0];
+  return '0' if $_[0] == 0;
+  return '-' . _i2l( abs int $_[0] ) if $_[0] <= -1;
+  return       _i2l(     int $_[0] );
+}
+ 
+{
+  my @alpha = ('a' .. 'z'); 
+  # Source: https://metacpan.org/source/SBURKE/Number-Latin-1.01/Latin.pm
+  sub _i2l { # the real work
+    my $int = shift(@_) || return "";
+    _i2l(int (($int - 1) / 26)) . $alpha[$int % 26 - 1];  # yes, recursive
+  }
+}
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Read input csv file and convert to $input hash
 #-------------------------------------------------------------------------------
+
+my $typeno=0;
+my $lastcolumn="";
+
 while (<>) {
  
   s/\R/\n/g;
@@ -64,12 +89,18 @@ while (<>) {
   $input->{$type}->{cycle_start} = $cycle_start;
   $input->{$type}->{frequency}   = $frequency;
   $input->{$type}->{comment}     = $comment;
-  $input->{$type}->{linenumber}  = $.;
+  $input->{$type}->{linenumber}  = $.; # this includes comment lines, this is not a data linenumber
   $input->{$type}->{line}        = $line;
   $input->{$type}->{cycles}      = $definitions->{$frequency}->{cycles_per_year}*$run_timestamp;
+  $input->{$type}->{colname}     = int2latin($typeno+4); # adds column letter name for spreadsheets, rows will come later
+  $input->{$type}->{typeno}      = $typeno;
   
-  push( @order, $type ); # order of rows in input file, which will become columns in the output
- 
+  $lastcolumn = uc($input->{$type}->{colname}); # need this so as to print something like =SUM(D2:AW2), etc.
+
+  push( @types, $type ); # order of rows, i.e. types, from in input file, which will become columns in the output
+
+  $typeno++;
+  
 }
 
 foreach my $type ( sort keys %{$input} ) {
@@ -99,6 +130,7 @@ foreach my $type ( sort keys %{$input} ) {
    $d = sprintf("%4d-%02d-%02d", $year, $month, $day );
    
    $cash_flow->{$d}->{$type}=$amount;
+   
   }
   
 }
@@ -106,57 +138,51 @@ foreach my $type ( sort keys %{$input} ) {
 my $cf;
 
 # Need to improve the below
-foreach my $date ( sort keys %{$cash_flow} ) {
+foreach my $date ( sort keys %{$cash_flow} ) { # sort by $date
   
   my @amounts;
   
-  foreach my $column_name ( @order ) {
+  foreach my $type ( @types ) {
     
     my $amount = '';
     
-    if( exists $cash_flow->{$date}->{$column_name} ) {
-      push( @amounts, $cash_flow->{$date}->{$column_name} );
+    if( exists $cash_flow->{$date}->{$type} ) {
+      push( @amounts, $cash_flow->{$date}->{$type} );
     } else {
       push( @amounts, '');
     }
-    
+
     $cf->{$date} = [ @amounts ];
-     
+    
   }
 
 }
 
-#-------------------------------------------------------------------------------
-# Source: https://metacpan.org/source/SBURKE/Number-Latin-1.01/Latin.pm
-#-------------------------------------------------------------------------------
-sub int2latin ($) {
-  # Source: https://metacpan.org/source/SBURKE/Number-Latin-1.01/Latin.pm
-  return undef unless defined $_[0];
-  return '0' if $_[0] == 0;
-  return '-' . _i2l( abs int $_[0] ) if $_[0] <= -1;
-  return       _i2l(     int $_[0] );
-}
- 
-{
-  my @alpha = ('a' .. 'z'); 
-  # Source: https://metacpan.org/source/SBURKE/Number-Latin-1.01/Latin.pm
-  sub _i2l { # the real work
-    my $int = shift(@_) || return "";
-    _i2l(int (($int - 1) / 26)) . $alpha[$int % 26 - 1];  # yes, recursive
-  }
-}
-#-------------------------------------------------------------------------------
 
 # main:
-print "date,CASH FLOW,SUM ON DATE," . join( ",", @order) . "\n";
+print "date,REMAINING ON DATE,SUM ON DATE," . join( ",", @types) . "\n";
+
+my $rowno=2; # 2 because header and spreadsheets starts with a 1, i.e. 1+1
 
 foreach my $date ( sort keys %{$cf} ) {
+  
+  my $rownoprevious = $rowno-1;
   
   my @amounts = @{$cf->{$date}};
   my $columns = scalar @amounts;
   
-  print "$date,,," . join( ",", @amounts) . "\n";
-#  print join(' ', map int2latin($_), $columns+3), "\n";
+  my $sum_on_date       = "=sum(D${rowno}:${lastcolumn}${rowno})";   
+  
+  my $remaining_on_date;
+  
+  if( $rownoprevious eq 1 ) {
+    $remaining_on_date = "=C${rowno}";    
+  } else {
+    $remaining_on_date = "=B${rownoprevious}+C${rowno}";
+  }
+  print "$date,$remaining_on_date,$sum_on_date," . join( ",", @amounts) . "\n";
+ 
+  $rowno++;
   
 }
 
