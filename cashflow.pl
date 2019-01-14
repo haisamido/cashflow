@@ -57,11 +57,11 @@ while (<>) {
   
   my @line = split(/,/, $line );
   
-  if( scalar @line ne 5 ) {
-    die( "\nERROR: on line $. [$line] does not have 5 columns, as it should\n");
+  if( scalar @line ne 6 ) {
+    die( "\nERROR: on line $. [$line] does not have 6 columns, as it should\n");
   }
   
-  my ($type, $amount, $cycle_start, $frequency, $comment ) = split(/,/, $line );
+  my ($type, $amount, $cycle_start, $frequency, $occurances, $comment ) = split(/,/, $line );
   
   $cycle_start =~ s/\s//g; # remove blanks around date
   
@@ -88,6 +88,7 @@ while (<>) {
   $input->{$type}->{amount}      = $amount;
   $input->{$type}->{cycle_start} = $cycle_start;
   $input->{$type}->{frequency}   = $frequency;
+  $input->{$type}->{occurances}  = $occurances; # number of occurances
   $input->{$type}->{comment}     = $comment;
   $input->{$type}->{linenumber}  = $.; # this includes comment lines, this is not a data linenumber
   $input->{$type}->{line}        = $line;
@@ -171,6 +172,7 @@ foreach my $date ( sort keys %{$cf} ) {
   my @amounts = @{$cf->{$date}};
   my $columns = scalar @amounts;
   
+  # @plain= grep { $_ ne '' } @plain;
   my $sum_on_date       = "=sum(D${rowno}:${lastcolumn}${rowno})";   
   
   my $remaining_on_date;
