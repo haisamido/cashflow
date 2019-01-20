@@ -81,6 +81,11 @@ while (<>) {
     die("\nERROR: on line $. [$line] has an improperly formatted date! The only permitted format is %Y-%m-%d\n");    
   }
   
+  if( $frequency =~ /^\s*\w+\s*\=\>\s*\d+\s*$/ ) {
+    $definitions->{"$frequency"}->{string}            = "$frequency";
+    $definitions->{"$frequency"}->{cycles_per_year}   = 1; #tbd
+  }
+  
   if( ! exists $definitions->{$frequency} ) {
     die("\nERROR: line $. [$line] has a frequency of [$frequency] which is not defined\n");
   }
