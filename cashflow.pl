@@ -206,6 +206,9 @@ sub get_definitions {
   $definitions->{biennial}->{string}          = 'years => 2';
   $definitions->{biennial}->{cycles_per_year} = 0.5;
 
+  $definitions->{biannual}->{string}          = 'months => 6';
+  $definitions->{biannual}->{cycles_per_year} = 2;
+
   $definitions->{semiannual}->{string}          = 'months => 6';
   $definitions->{semiannual}->{cycles_per_year} = 2;
   
